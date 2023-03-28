@@ -1,4 +1,3 @@
-# Echo client program
 import socket
 import threading
 
@@ -18,9 +17,11 @@ class Peer:
 				raise Exception('Manager disconnected!')
 			
 			if data == b'PING':
+				print('[INFO] Pong!')
 				self.socket.sendall(b'PONG')
 				continue
 			
+			print('[INFO] Received peer update!')
 			self.peers = [(p.split(",")[0], p.split(",")[1]) for p in data.decode().split(';')]
 			print(self.peers)
 
