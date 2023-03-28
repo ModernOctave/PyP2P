@@ -23,12 +23,11 @@ class Peer:
 			
 			print('[INFO] Received peer update!')
 			self.peers = [(p.split(",")[0], p.split(",")[1]) for p in data.decode().split(';')]
-			print(self.peers)
 
 	def run(self):
 		try:
 			self.socket.connect((self.host, self.port))
-			threading.Thread(target=self.handleManager).start()
+			self.handleManager()
 
 		except KeyboardInterrupt:
 			self.socket.sendall(b'CLOSE')
@@ -39,8 +38,8 @@ class Peer:
 		except Exception as e:
 			self.socket.sendall(b'CLOSE')
 			self.socket.close()
-			print('[ERROR] Something went wrong!')
-			print(e)
+			print(f'[ERROR] {e}')
+			raise
 
 if __name__ == '__main__':
 	Peer(HOST, PORT).run()

@@ -11,14 +11,14 @@ class Manager:
 			self.conn = conn
 			self.addr = addr
 
-	def __init__(self, host, port):
+	def __init__(self, host, port, timeout=10):
 		# Setup socket
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.socket.bind((host, port))
 
+		self.timeout = timeout
 		self.lock = threading.Lock()
-
 		self.active_peers = []
 
 	def broadcastActivePeers(self):
@@ -58,21 +58,19 @@ class Manager:
 				print(f'[INFO] Pinging {peer.addr}')
 				peer.conn.sendall(b'PING')
 				data = peer.conn.recv(1024)
-				if data == b'PONG':
-					lastPing = time.time()
-				else:
+				if not data == b'PONG':
 					self.unregisterPeer(peer)
 					break
 					
 
 	def handleConnections(self):
 			while True:
-				self.socket.listen(1)
+				self.socket.listen()
 				conn, addr = self.socket.accept()
 
 				self.registerPeer(self.Peer(conn, addr))
 
-				threading.Thread(target=self.handlePeer, args=(self.active_peers[-1],)).start()
+				threading.Thread(target=self.handlePeer, args=(self.active_peers[-1],), daemon=True).start()
 
 	def run(self):
 		print('[NOTICE] Manager started!')
@@ -80,9 +78,19 @@ class Manager:
 		try:
 			self.handleConnections()
 		except KeyboardInterrupt:
-			self.socket.close()
 			print('[NOTICE] Shutting down...')
+			self.socket.close()
+			for peer in self.active_peers.copy():
+				peer.conn.close()
+				self.active_peers.remove(peer)
 			exit(0)
+		except Exception as e:
+			self.socket.close()
+			for peer in self.active_peers.copy():
+				peer.conn.close()
+				self.active_peers.remove(peer)
+			print(f'[ERROR] {e}')
+			raise
 
 if __name__ == '__main__':
 	Manager(HOST, PORT).run()
