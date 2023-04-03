@@ -7,11 +7,11 @@ PORT = 50000
 
 class Manager:
 	class Peer:
-		def __init__(self, conn, addr):
-			self.conn = conn
-			self.addr = addr
+		def __init__(self, internal, external):
+			self.conn, self.addr = internal
+			self.host, self.port = external
 
-	def __init__(self, host, port, timeout=10):
+	def __init__(self, host, port, timeout=60):
 		# Setup socket
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -24,12 +24,12 @@ class Manager:
 	def broadcastActivePeers(self):
 		self.lock.acquire()
 		for peer in self.active_peers:
-			l = ';'.join([f"{p.addr[0]},{p.addr[1]}" for p in self.active_peers])
+			l = ';'.join([f"{p.host},{p.port}" for p in self.active_peers if p != peer])
 			peer.conn.sendall(l.encode())
 		self.lock.release()
 
 	def registerPeer(self, peer):
-		peer.conn.settimeout(10)
+		peer.conn.settimeout(self.timeout)
 		self.lock.acquire()
 		self.active_peers.append(peer)
 		print(f'[INFO] New peer connected: {peer.addr}')
@@ -67,8 +67,9 @@ class Manager:
 			while True:
 				self.socket.listen()
 				conn, addr = self.socket.accept()
+				host, port = conn.recv(1024).decode().split(',')
 
-				self.registerPeer(self.Peer(conn, addr))
+				self.registerPeer(self.Peer((conn, addr), (host, int(port))))
 
 				threading.Thread(target=self.handlePeer, args=(self.active_peers[-1],), daemon=True).start()
 

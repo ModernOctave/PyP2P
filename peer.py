@@ -1,45 +1,51 @@
 import socket
 import threading
 
-HOST = '127.0.0.1'
-PORT = 50000
+MANAGER_HOST = '127.0.0.1'
+MANAGER_PORT = 50000
 
 class Peer:
-	def __init__(self, host, port):
-		self.host = host
-		self.port = port
+	def __init__(self, manager_address):
+		self.manager_host,self.manager_port = manager_address
+		# Socket for communication with manager
+		self.manager = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		# Socket for incoming connections
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.socket.bind(('', 0))
+		self.host, self.port = self.socket.getsockname()
 
 	def handleManager(self):
 		while True:
-			data = self.socket.recv(1024)
+			data = self.manager.recv(1024)
 			if not data:
 				raise Exception('Manager disconnected!')
 			
 			if data == b'PING':
 				print('[INFO] Pong!')
-				self.socket.sendall(b'PONG')
+				self.manager.sendall(b'PONG')
 				continue
 			
 			print('[INFO] Received peer update!')
 			self.peers = [(p.split(",")[0], p.split(",")[1]) for p in data.decode().split(';')]
+			print(self.peers)
 
 	def run(self):
 		try:
-			self.socket.connect((self.host, self.port))
+			self.manager.connect((self.manager_host, self.manager_port))
+			self.manager.sendall(f"{self.host},{self.port}".encode())
 			self.handleManager()
 
 		except KeyboardInterrupt:
-			self.socket.sendall(b'CLOSE')
-			self.socket.close()
+			self.manager.sendall(b'CLOSE')
+			self.manager.close()
 			print('[NOTICE] Shutting down...')
 			exit(0)
 
 		except Exception as e:
-			self.socket.sendall(b'CLOSE')
-			self.socket.close()
+			self.manager.sendall(b'CLOSE')
+			self.manager.close()
 			print(f'[ERROR] {e}')
 			raise
 
 if __name__ == '__main__':
-	Peer(HOST, PORT).run()
+	Peer((MANAGER_HOST, MANAGER_PORT)).run()
