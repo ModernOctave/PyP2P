@@ -54,9 +54,26 @@ class Peer:
 				if self.verbose: print(f'[INFO] New request from {addr} for {request}')
 
 				if request in os.listdir(self.folder):
-					conn.sendall(b'AVAILABLE')
+					length = os.path.getsize(os.path.join(self.folder, request))
+					conn.sendall(str(length).encode())
+				else:
+					conn.sendall(b'SORRY')
 
 				conn.close()
+
+	def findHosts(self, filename):
+		# Find hosts that have the requested file
+		hosts = []
+		for peer in self.peers:
+			conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			conn.connect(peer)
+			conn.sendall(filename.encode())
+			data = conn.recv(1024)
+			if data == b'SORRY':
+				continue
+			hosts.append(peer)
+			conn.close()
+		return hosts
 
 	def run(self):
 		try:
@@ -68,18 +85,14 @@ class Peer:
 					print('[NOTICE] Waiting for peers to be available...')
 					while not hasattr(self, 'peers'):
 						pass
-				# Request file from peer
+				# Choose file to request
 				filename = input('Filename of the file to request: ')
 				if filename in os.listdir(self.folder):
 					print('[ERROR] You already have this file!')
 					continue
-				for peer in self.peers:
-					conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-					conn.connect(peer)
-					conn.sendall(filename.encode())
-					data = conn.recv(1024)
-					print(data.decode())
-					conn.close()
+				# Find hosts that have the requested file
+				hosts = self.findHosts(filename)
+				print(hosts)
 
 		except KeyboardInterrupt:
 			self.manager.sendall(b'CLOSE')
@@ -92,6 +105,7 @@ class Peer:
 			self.manager.close()
 			print(f'[ERROR] {e}')
 			raise
+			exit(1)
 
 if __name__ == '__main__':
 	Peer((MANAGER_HOST, MANAGER_PORT), True).run()
