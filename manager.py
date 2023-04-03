@@ -31,16 +31,18 @@ class Manager:
 	def registerPeer(self, peer):
 		peer.conn.settimeout(self.timeout)
 		self.lock.acquire()
-		self.active_peers.append(peer)
-		print(f'[INFO] New peer connected: {peer.addr}')
+		if peer not in self.active_peers:
+			print(f'[INFO] New peer connected: {peer.addr}')
+			self.active_peers.append(peer)
 		self.lock.release()
 
 		self.broadcastActivePeers()
 
 	def unregisterPeer(self, peer):
 		self.lock.acquire()
-		print(f'[INFO] Peer disconnected: {peer.addr}')
-		self.active_peers.remove(peer)
+		if peer in self.active_peers:
+			print(f'[INFO] Peer disconnected: {peer.addr}')
+			self.active_peers.remove(peer)
 		self.lock.release()
 		peer.conn.close()
 
