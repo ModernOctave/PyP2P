@@ -1,3 +1,4 @@
+import os
 import socket
 import threading
 
@@ -5,35 +6,80 @@ MANAGER_HOST = '127.0.0.1'
 MANAGER_PORT = 50000
 
 class Peer:
-	def __init__(self, manager_address):
+	def __init__(self, manager_address, verbose=False):
+		self.verbose = verbose
 		self.manager_host,self.manager_port = manager_address
-		# Socket for communication with manager
-		self.manager = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		# Socket for incoming connections
+
+		# Setup shared folder
+		self.folder = input('Path to shared folder (i.e. contains files that can be shared): ')
+		try:
+			if not os.path.isdir(self.folder):
+				raise Exception('Could not find folder! Make sure the path is relative or absolute.')
+		except Exception as e:
+			print(f'[ERROR] {e}')
+			exit(1)
+		
+		# Socket for incoming requests
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.bind(('', 0))
 		self.host, self.port = self.socket.getsockname()
 
+		# Socket for communication with manager
+		self.manager = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.manager.connect((self.manager_host, self.manager_port))
+		self.manager.sendall(f"{self.host},{self.port}".encode())
+
 	def handleManager(self):
+		# Handle pings and peer updates from manager
 		while True:
 			data = self.manager.recv(1024)
 			if not data:
 				raise Exception('Manager disconnected!')
 			
 			if data == b'PING':
-				print('[INFO] Pong!')
+				if self.verbose: print('[INFO] Pong!')
 				self.manager.sendall(b'PONG')
 				continue
 			
-			print('[INFO] Received peer update!')
-			self.peers = [(p.split(",")[0], p.split(",")[1]) for p in data.decode().split(';')]
-			print(self.peers)
+			if self.verbose: print('[INFO] Received peer update!')
+			self.peers = [(p.split(",")[0], int(p.split(",")[1])) for p in data.decode().split(';')]
+
+	def handleRequests(self):
+			# Handle incoming requests from other peers
+			while True:
+				self.socket.listen()
+				conn, addr = self.socket.accept()
+				request = conn.recv(1024).decode()
+
+				if self.verbose: print(f'[INFO] New request from {addr} for {request}')
+
+				if request in os.listdir(self.folder):
+					conn.sendall(b'AVAILABLE')
+
+				conn.close()
 
 	def run(self):
 		try:
-			self.manager.connect((self.manager_host, self.manager_port))
-			self.manager.sendall(f"{self.host},{self.port}".encode())
-			self.handleManager()
+			threading.Thread(target=self.handleManager, daemon=True).start()
+			threading.Thread(target=self.handleRequests, daemon=True).start()
+			while True:
+				# Wait for peers to be available
+				if not hasattr(self, 'peers') or len(self.peers) == 0:
+					print('[NOTICE] Waiting for peers to be available...')
+					while not hasattr(self, 'peers'):
+						pass
+				# Request file from peer
+				filename = input('Filename of the file to request: ')
+				if filename in os.listdir(self.folder):
+					print('[ERROR] You already have this file!')
+					continue
+				for peer in self.peers:
+					conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+					conn.connect(peer)
+					conn.sendall(filename.encode())
+					data = conn.recv(1024)
+					print(data.decode())
+					conn.close()
 
 		except KeyboardInterrupt:
 			self.manager.sendall(b'CLOSE')
@@ -48,4 +94,4 @@ class Peer:
 			raise
 
 if __name__ == '__main__':
-	Peer((MANAGER_HOST, MANAGER_PORT)).run()
+	Peer((MANAGER_HOST, MANAGER_PORT), True).run()
