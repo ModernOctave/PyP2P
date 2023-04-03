@@ -3,6 +3,8 @@ This is peer-to-peer file transfer software written in Python. It was made as pa
 
 The software consists of two parts: a peer and a manager. A single manager must be running at all times. The manager is responsible for keeping track of all the active peers. Peers can connect to the manager and register themselves. The peers can then connect to each other directly and transfer files.
 
+The source code is available on [GitHub](https://github.com/ModernOctave/PyP2P).
+
 # Setup
 The `MANAGER_HOST` and `MANAGER_PORT` variables in the [peer.py](peer.py) and [manager.py](manager.py) files must be set to the IP address and port number of the manager. 
 
@@ -17,8 +19,7 @@ Passing the `-v` or `--verbose` flag to [peer.py](peer.py) will enable verbose m
 
 # Demo
 ## Video
-[Demo Video](https://youtu.be/hnGVwJPzXek)
-<iframe width="560" height="315" src="https://www.youtube.com/embed/hnGVwJPzXek" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+[![Demo Video](https://img.youtube.com/vi/hnGVwJPzXek/0.jpg)](https://www.youtube.com/watch?v=hnGVwJPzXek)
 
 ## Instructions
 First unzip the demo files by running the following command from the root directory of the project:
