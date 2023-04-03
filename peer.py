@@ -1,3 +1,4 @@
+import argparse
 import os
 import socket
 import threading
@@ -128,8 +129,16 @@ class Peer:
 				break
 
 	def getFile(self, filename):
+		print('[INFO] Finding hosts...')
+
 		# Find hosts that have the requested file
 		hosts, length = self.findHosts(filename)
+
+		if not hosts:
+			print('[INFO] No hosts found!')
+			return
+
+		print('[INFO] Transfering chunks...')
 		
 		num_chunks = -(length // -self.chunk_size)
 		reqs = list(range(num_chunks))
@@ -192,4 +201,8 @@ class Peer:
 			raise
 
 if __name__ == '__main__':
-	Peer((MANAGER_HOST, MANAGER_PORT, True)).run()
+	# Parse arguments
+	parser = argparse.ArgumentParser(prog='peer.py', description='Peer program for the PyP2P file sharing system', epilog='Designed by Om Patil (https://github.com/ModernOctave)')
+	parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose mode')
+	args = parser.parse_args()
+	Peer((MANAGER_HOST, MANAGER_PORT), args.verbose).run()

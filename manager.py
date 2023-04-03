@@ -2,8 +2,8 @@ import socket
 import threading
 import time
 
-HOST = '127.0.0.1'
-PORT = 50000
+MANAGER_HOST = '127.0.0.1'
+MANAGER_PORT = 50000
 
 class Manager:
 	class Peer:
@@ -96,4 +96,4 @@ class Manager:
 			raise
 
 if __name__ == '__main__':
-	Manager(HOST, PORT).run()
+	Manager(MANAGER_HOST, MANAGER_PORT).run()
