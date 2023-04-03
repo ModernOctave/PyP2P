@@ -17,6 +17,7 @@ Passing the `-v` or `--verbose` flag to [peer.py](peer.py) will enable verbose m
 
 # Demo
 ## Video
+[Demo Video](https://youtu.be/hnGVwJPzXek)
 <iframe width="560" height="315" src="https://www.youtube.com/embed/hnGVwJPzXek" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Instructions
